@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meeting Scheduler – AllRead</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f5f4f0;
+    min-height: 100vh;
+    padding: 2rem 1rem;
+    color: #1a1a18;
+  }
+  .container { max-width: 680px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 2rem; }
+  header .meeting-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: #534AB7;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+  header h1 { font-size: 24px; font-weight: 500; margin-bottom: 6px; }
+  header p { font-size: 15px; color: #5f5e5a; }
+  .card {
+    background: #fff;
+    border: 0.5px solid rgba(0,0,0,0.12);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .card h2 { font-size: 15px; font-weight: 500; margin-bottom: 1rem; color: #1a1a18; }
+  input[type="text"] {
+    width: 100%;
+    padding: 10px 14px;
+    border: 0.5px solid rgba(0,0,0,0.25);
+    border-radius: 8px;
+    font-size: 15px;
+    outline: none;
+    background: #fff;
+    color: #1a1a18;
+    transition: border-color 0.15s;
+  }
+  input[type="text"]:focus {
+    border-color: rgba(0,0,0,0.5);
+    box-shadow: 0 0 0 3px rgba(83,74,183,0.12);
+  }
+  .dates-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 480px) { .dates-grid { grid-template-columns: 1fr; } }
+  .date-option {
+    border: 1.5px solid rgba(0,0,0,0.12);
+    border-radius: 10px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+    position: relative;
+  }
+  .date-option:hover { border-color: #534AB7; background: #EEEDFE; }
+  .date-option.selected { border-color: #534AB7; background: #EEEDFE; }
+  .date-option.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 10px; right: 12px;
+    color: #534AB7;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .date-option .day { font-size: 13px; color: #5f5e5a; margin-bottom: 2px; }
+  .date-option .date { font-size: 15px; font-weight: 500; color: #1a1a18; }
+  .date-option .time { font-size: 13px; color: #534AB7; margin-top: 2px; }
+  .submit-btn {
+    width: 100%;
+    padding: 12px;
+    background: #534AB7;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .submit-btn:hover { background: #3C3489; }
+  .submit-btn:active { transform: scale(0.98); }
+  .submit-btn:disabled { background: #AFA9EC; cursor: not-allowed; }
+  .error { color: #A32D2D; font-size: 13px; margin-top: 8px; display: none; }
+  .success-banner {
+    background: #EAF3DE;
+    border: 0.5px solid #639922;
+    border-radius: 10px;
+    padding: 14px 18px;
+    color: #3B6D11;
+    font-size: 14px;
+    margin-top: 1rem;
+    display: none;
+  }
+  .results-card {
+    background: #fff;
+    border: 0.5px solid rgba(0,0,0,0.12);
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+  .results-card h2 { font-size: 15px; font-weight: 500; margin-bottom: 1rem; }
+  .date-result { margin-bottom: 14px; }
+  .date-result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .date-result-label { font-size: 14px; color: #1a1a18; font-weight: 500; }
+  .vote-count { font-size: 13px; color: #534AB7; font-weight: 500; }
+  .progress-bar { height: 6px; background: #EEEDFE; border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; background: #534AB7; border-radius: 4px; transition: width 0.4s ease; }
+  .voters-list { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px; }
+  .voter-chip { background: #EEEDFE; color: #3C3489; font-size: 12px; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+  .no-votes { font-size: 14px; color: #888780; text-align: center; padding: 1rem 0; }
+  .total-voters { font-size: 13px; color: #5f5e5a; margin-bottom: 1rem; }
+  .share-section { margin-top: 1rem; padding-top: 1rem; border-top: 0.5px solid rgba(0,0,0,0.1); }
+  .share-section p { font-size: 13px; color: #5f5e5a; margin-bottom: 8px; }
+  .share-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 0.5px solid rgba(0,0,0,0.2);
+    border-radius: 8px;
+    background: transparent;
+    font-size: 14px;
+    cursor: pointer;
+    color: #1a1a18;
+    transition: background 0.15s;
+    text-decoration: none;
+  }
+  .share-btn:hover { background: #f1efe8; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="meeting-title">AllRead</div>
+    <h1>Junta General Ordinaria de Socios</h1>
+    <p>Select all dates that work for you. Results are visible to everyone.</p>
+  </header>
+
+  <div class="card">
+    <h2>Your availability</h2>
+    <label for="nameInput" style="font-size:13px; color:#5f5e5a; display:block; margin-bottom:6px;">Your name</label>
+    <input type="text" id="nameInput" placeholder="e.g. Sophie Martin" maxlength="50" />
+    <div class="error" id="nameError">Please enter your name before submitting.</div>
+    <div class="error" id="dateError" style="margin-top:4px;">Please select at least one date.</div>
+
+    <div class="dates-grid" style="margin-top:1.25rem;">
+      <div class="date-option" data-id="0" onclick="toggleDate(this)">
+        <div class="day">Thursday</div>
+        <div class="date">June 25</div>
+        <div class="time">17:00 – 18:00</div>
+      </div>
+      <div class="date-option" data-id="1" onclick="toggleDate(this)">
+        <div class="day">Tuesday</div>
+        <div class="date">June 30</div>
+        <div class="time">17:00 – 18:00</div>
+      </div>
+      <div class="date-option" data-id="2" onclick="toggleDate(this)">
+        <div class="day">Wednesday</div>
+        <div class="date">July 1</div>
+        <div class="time">17:00 – 18:00</div>
+      </div>
+      <div class="date-option" data-id="3" onclick="toggleDate(this)">
+        <div class="day">Thursday</div>
+        <div class="date">July 2</div>
+        <div class="time">17:00 – 18:00</div>
+      </div>
+    </div>
+
+    <button class="submit-btn" id="submitBtn" onclick="submitVote()" style="margin-top:1.25rem;">
+      Submit my availability
+    </button>
+
+    <div class="success-banner" id="successBanner">
+      ✅ Your availability has been saved! Thank you.
+    </div>
+  </div>
+
+  <div class="results-card">
+    <h2>Results</h2>
+    <div class="total-voters" id="totalVoters">No responses yet.</div>
+    <div id="resultsContainer"><div class="no-votes">Be the first to respond!</div></div>
+
+    <div class="share-section">
+      <p>Share this page with participants:</p>
+      <button class="share-btn" onclick="copyLink()">🔗 Copy link</button>
+      <a class="share-btn" id="mailtoLink" href="#">✉️ Send by email</a>
+    </div>
+  </div>
+
+</div>
+<script>
+const DATES = [
+  'Thursday June 25 · 17:00–18:00',
+  'Tuesday June 30 · 17:00–18:00',
+  'Wednesday July 1 · 17:00–18:00',
+  'Thursday July 2 · 17:00–18:00'
+];
+const STORAGE_KEY = 'allread_jgo_votes_v1';
+
+function loadVotes() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveVotes(v) { localStorage.setItem(STORAGE_KEY, JSON.stringify(v)); }
+
+function toggleDate(el) { el.classList.toggle('selected'); }
+
+function submitVote() {
+  const nameInput = document.getElementById('nameInput');
+  const name = nameInput.value.trim();
+  const selected = [...document.querySelectorAll('.date-option.selected')];
+  document.getElementById('nameError').style.display = 'none';
+  document.getElementById('dateError').style.display = 'none';
+  if (!name) { document.getElementById('nameError').style.display = 'block'; nameInput.focus(); return; }
+  if (!selected.length) { document.getElementById('dateError').style.display = 'block'; return; }
+
+  const votes = loadVotes();
+  votes[name] = selected.map(el => parseInt(el.dataset.id));
+  saveVotes(votes);
+
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('successBanner').style.display = 'block';
+  nameInput.disabled = true;
+  document.querySelectorAll('.date-option').forEach(el => {
+    el.style.pointerEvents = 'none';
+    el.style.opacity = el.classList.contains('selected') ? '1' : '0.5';
+  });
+  renderResults();
+}
+
+function renderResults() {
+  const votes = loadVotes();
+  const names = Object.keys(votes);
+  const totalEl = document.getElementById('totalVoters');
+  const container = document.getElementById('resultsContainer');
+  if (!names.length) {
+    totalEl.textContent = 'No responses yet.';
+    container.innerHTML = '<div class="no-votes">Be the first to respond!</div>';
+    return;
+  }
+  totalEl.textContent = `${names.length} participant${names.length > 1 ? 's' : ''} responded`;
+  const counts = DATES.map((_, i) => ({ voters: names.filter(n => votes[n].includes(i)) }));
+  const maxVotes = Math.max(...counts.map(c => c.voters.length), 1);
+  container.innerHTML = counts.map((d, i) => `
+    <div class="date-result">
+      <div class="date-result-header">
+        <span class="date-result-label">${DATES[i]}</span>
+        <span class="vote-count">${d.voters.length} / ${names.length}</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${(d.voters.length/maxVotes)*100}%"></div></div>
+      <div class="voters-list">${d.voters.map(v => `<span class="voter-chip">${esc(v)}</span>`).join('')}</div>
+    </div>`).join('');
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function copyLink() {
+  navigator.clipboard.writeText(window.location.href)
+    .then(() => alert('Link copied to clipboard!'))
+    .catch(() => alert('Please copy the URL from your browser bar.'));
+}
+
+(function setMailto() {
+  const subject = encodeURIComponent('Please vote – Junta General Ordinaria de Socios AllRead');
+  const body = encodeURIComponent('Hi,\n\nPlease indicate your availability for the Junta General Ordinaria de Socios AllRead:\n\n' + window.location.href + '\n\nThank you!');
+  document.getElementById('mailtoLink').href = `mailto:?subject=${subject}&body=${body}`;
+})();
+
+renderResults();
+</script>
+</body>
+</html>
